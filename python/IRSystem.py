@@ -180,21 +180,21 @@ class IRSystem:
   #   1) the documents in which a particular word is contained, and 
   #   2) for every document, the positions of that word in the document 
   ##
-  # Inverted index structure:
-  #     inv_index = {
-  #       word1: {
-  #         doc1: [positn1, positn2, ..., positnN]
-  #         doc2: [positn1, positn2, ..., positnN]
-  #       },
-  #       word2: {
-  #         doc1: [positn1, positn2, ..., positnN]
-  #         doc2: [positn1, positn2, ..., positnN]
-  #       }
-  #     }
+    # Inverted index structure:
+    #     inv_index = {
+    #       word1: {
+    #         doc1: [positn1, positn2, ..., positnN]
+    #         doc2: [positn1, positn2, ..., positnN]
+    #       },
+    #       word2: {
+    #         doc1: [positn1, positn2, ..., positnN]
+    #         doc2: [positn1, positn2, ..., positnN]
+    #       }
+    #     }
   ##
-  # Some helpful instance variables:
-  #   * self.docs = List of documents
-  #   * self.titles = List of titles
+    # Some helpful instance variables:
+    #   * self.docs = List of documents
+    #   * self.titles = List of titles
   def index(self):
     print "Indexing..."
 
@@ -224,17 +224,14 @@ class IRSystem:
     self.inv_index = inv_index
 
 
+  ######
+  # Given a word, this returns the list of document indices (sorted)
+  # in which the word occurs.
   def get_posting(self, word):
-    """
-    Given a word, this returns the list of document indices (sorted) in
-    which the word occurs.
-    """
-    # ------------------------------------------------------------------
-    # TODO: return the list of postings for a word.
+    print self.inv_index[word].keys()
     posting = []
 
     return posting
-    # ------------------------------------------------------------------
 
 
   def get_posting_unstemmed(self, word):
