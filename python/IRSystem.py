@@ -226,51 +226,50 @@ class IRSystem:
 
   ######
   # Given a word, this returns the list of document indices (sorted)
-  # in which the word occurs.
+  # in which the word occurs. Functions as an API to self.index.
   def get_posting(self, word):
-    print self.inv_index[word].keys()
-    posting = []
+    return list(self.inv_index[word].keys())
 
-    return posting
-
-
+  ######
+  # Given a word, this *stems* the word and then calls get_posting on
+  # the stemmed word to get its postings list. You should *not* need
+  # to change this function. It is needed for submission.
   def get_posting_unstemmed(self, word):
-    """
-    Given a word, this *stems* the word and then calls get_posting on the
-    stemmed word to get its postings list. You should *not* need to change
-    this function. It is needed for submission.
-    """
     word = self.p.stem(word)
     return self.get_posting(word)
 
-
+  ######
+  # Given a query in the form of a list of *stemmed* words, this
+  # returns the list of documents in which *all* of those words occur
+  # (ie an AND query).
+  ##
+  # Return an empty list if the query does not return any documents.
   def boolean_retrieve(self, query):
-    """
-    Given a query in the form of a list of *stemmed* words, this returns
-    the list of documents in which *all* of those words occur (ie an AND
-    query).
-    Return an empty list if the query does not return any documents.
-    """
-    # ------------------------------------------------------------------
-    # TODO: Implement Boolean retrieval. You will want to use your
-    #     inverted index that you created in index().
-    # Right now this just returns all the possible documents!
-    docs = []
-    for d in range(len(self.docs)):
-      docs.append(d)
+    # Initialize an array with same length as query
+    postings = [0]*len(query)
 
-    # ------------------------------------------------------------------
+    ##
+    # For each word in the query, get the set of document indices
+    # in which that word occurs.
+    for i, word in enumerate(query):
+      postings[i] = set(self.get_posting(word))
 
-    return sorted(docs)   # sorted doesn't actually matter
+    ##
+    # Find the intersection of posting lists for every word in the
+    # query, and turn it into a list.
+    docs = list(set.intersection(*postings))
+
+    # Return the sorted list of docs containing every word in the query.
+    return sorted(docs)  # sorted doesn't actually matter 
 
 
+  ##
+  # Given a query in the form of an ordered list of *stemmed* words,
+  # this returns the list of documents in which *all* of those words
+  # occur, and in the specified order. 
+  ##
+  # Return an empty list if the query does not return any documents. 
   def phrase_retrieve(self, query):
-    """
-    Given a query in the form of an ordered list of *stemmed* words, this 
-    returns the list of documents in which *all* of those words occur, and 
-    in the specified order. 
-    Return an empty list if the query does not return any documents. 
-    """
     # ------------------------------------------------------------------
     # TODO: Implement Phrase Query retrieval (ie. return the documents 
     #     that don't just contain the words, but contain them in the 
