@@ -136,34 +136,68 @@ class IRSystem:
     self.vocab = [xx for xx in self.get_uniq_words()]
 
 
+  ##
+  # Computes and store TF-IDF values for words and documents.
+  ##
+    # Useful data structures:
+    # * self.vocab: a list of all distinct (stemmed) words
+    # * self.docs: a list of lists, where the i-th document is
+    #              self.docs[i] => ['word1', 'word2', ..., 'wordN']
+    # NOTE: you probably do *not* want to store a value for every
+    # word-document pair, but rather just for those pairs where a
+    # word actually occurs in the document.
   def compute_tfidf(self):
-    # -------------------------------------------------------------------
-    # TODO: Compute and store TF-IDF values for words and documents.
-    #     Recall that you can make use of:
-    #     * self.vocab: a list of all distinct (stemmed) words
-    #     * self.docs: a list of lists, where the i-th document is
-    #           self.docs[i] => ['word1', 'word2', ..., 'wordN']
-    #     NOTE that you probably do *not* want to store a value for every
-    #     word-document pair, but rather just for those pairs where a
-    #     word actually occurs in the document.
     print "Calculating tf-idf..."
+
+    # Initialize an empty dict for tfidf scores
     self.tfidf = {}
+
+    # Get the log_10 of the number of docs
+    logN = math.log(len(self.docs), 10)
+
     for word in self.vocab:
-      for d in range(len(self.docs)):
-        if word not in self.tfidf:
-          self.tfidf[word] = {}
-        self.tfidf[word][d] = 0.0
+      ##
+      # Retreive index of docs containing the word and the indices of 
+      # occurrence of that word in each doc.
+      posting = self.inv_index[word]
 
+      ##
+      # Calculate the log_10 of the inverted document frequency, which
+      # is log(# of docs / # of docs in which the doc occurs).
+      idf = logN - math.log(len(posting), 10)
+
+      ##
+      # Iterate through each doc index and its corresponding list containing
+      # indices of occurrence of 'word' in that doc.
+      for doc_i, occurrences in posting.items():
+        ##
+        # If the 'tfidf' of 'word' has not yet been computed and placed
+        # in the 'self.tfidf' dict, initialize an empty dict and associate
+        # it with 'self.tfidf[word]'.
+        if word not in self.tfidf:    self.tfidf[word] = {}
+
+        # Calculate the log term frequency.
+        tf = 1.0 + math.log(len(occurrences), 10)
+
+        ##
+        # The tfidf score for the document 'd' and the current word 'word'
+        # is the product of the 'tf' and 'idf' scores.
+        self.tfidf[word][doc_i] = tf * idf 
+
+    # Calculate per-document l2 norms for use in cosine similarity
+    # self.tfidf_l2norm[d] = sqrt(sum[tdidf**2])) for tdidf of all words in 
+    # document number d
+    tfidf_l2norm2 = {}
+    for word, d_dict in self.tfidf.items():
+        for d,val in d_dict.items():
+            tfidf_l2norm2[d] = tfidf_l2norm2.get(d, 0.0) + val ** 2
+    self.tfidf_l2norm = dict((k,math.sqrt(v)) for k,v in tfidf_l2norm2.items())   
     # ------------------------------------------------------------------
 
-
+  ##
+  # Returns the tf-idf weigthing for the given word (string) & document index.
   def get_tfidf(self, word, document):
-    # ------------------------------------------------------------------
-    # TODO: Return the tf-idf weigthing for the given word (string) and
-    #     document index.
-    tfidf = 0.0
-    # ------------------------------------------------------------------
-    return tfidf
+    return self.tfidf[word][document]
 
 
   def get_tfidf_unstemmed(self, word, document):
