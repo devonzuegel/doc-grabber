@@ -397,7 +397,7 @@ class IRSystem:
     ######## END HELPER METHOD ################################################
 
     query_counts = get_log_query_counts(query)
-    # Compute scores and add to a priority queue
+    # Compute list of scores (which will later be sorted)
     scores = []
     for doc_i in range(len(self.docs)):
       scores.append( (doc_i, get_score(doc_i)) )
