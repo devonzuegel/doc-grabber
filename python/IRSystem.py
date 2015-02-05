@@ -243,7 +243,7 @@ class IRSystem:
   # returns the list of documents in which *all* of those words occur
   # (ie an AND query).
   ##
-  # Return an empty list if the query does not return any documents.
+    # Return an empty list if the query does not return any documents.
   def boolean_retrieve(self, query):
     # Initialize an array with same length as query
     postings = [0]*len(query)
@@ -263,33 +263,68 @@ class IRSystem:
     return sorted(docs)  # sorted doesn't actually matter 
 
 
-  ##
+  ######
   # Given a query in the form of an ordered list of *stemmed* words,
   # this returns the list of documents in which *all* of those words
   # occur, and in the specified order. 
   ##
-  # Return an empty list if the query does not return any documents. 
+    # Return an empty list if the query does not return any documents. 
+  ##
+    # ---PSEUDOCODE:---
+    # For each occurrence of the first word
+    #   Check if 2nd word is +1 ahead
+    #   Check if 3rd word is +2 ahead
+    #   ...
   def phrase_retrieve(self, query):
-    # ------------------------------------------------------------------
-    # TODO: Implement Phrase Query retrieval (ie. return the documents 
-    #     that don't just contain the words, but contain them in the 
-    #     correct order) You will want to use the inverted index 
-    #     that you created in index(), and may also consider using
-    #     boolean_retrieve
-    # Right now this just returns all possible documents!
+    # The list of docs to return at the end
     docs = []
-    for d in range(len(self.docs)):
-      docs.append(d)
 
-    # ------------------------------------------------------------------
+    ##
+    # Filter a starting list of docs to just those that we know to
+    # contain all of the words.
+    bool_docs = self.boolean_retrieve(query)
+    if len(query) == 0:   return bool_docs
 
+    # Iterate through each document.
+    for i, doc in enumerate(bool_docs):
+      ##
+        # Populate 'occurrences_in_doc' with the list of a given word's
+        # occurrence indices.
+      occurrences_in_doc = [0]*len(query)  # init w/ length = len(query)
+      for i, word in enumerate(query):
+        occurrences_in_doc[i] = self.inv_index[word][doc]
+
+      ##
+      # For each occurrence of the 0th query word, look for a full
+      # occurrence of the entire phrase by iterating through each word
+      # in the query and checking to see if it's at the i_next index.
+      for i_start in occurrences_in_doc[0]:
+        full_occurrence = True
+        for steps_ahead, word in enumerate(query):
+          # Don't have to check 0th word in query
+          if (steps_ahead==0):   pass
+
+          i_next = i_start + steps_ahead
+
+          ##
+          # If the next word in query isn't found at the index
+          # (i_start + steps_ahead) in the doc, this occurrences is
+          # not complete. Break out of loop.
+          if not i_next in occurrences_in_doc[steps_ahead]:
+            full_occurrence = False
+            break
+
+        if full_occurrence:
+          docs.append(doc)
+
+    # Return the sorted list of documents that contain the query phrase
     return sorted(docs)   # sorted doesn't actually matter
 
+
+  ######
+  # Given a query (a list of words), return a rank-ordered list of
+  # documents (by ID) and score for the query.
   def rank_retrieve(self, query):
-    """
-    Given a query (a list of words), return a rank-ordered list of
-    documents (by ID) and score for the query.
-    """
     scores = [0.0 for xx in range(len(self.docs))]
     # ------------------------------------------------------------------
     # TODO: Implement cosine similarity between a document and a list of
