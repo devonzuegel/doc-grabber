@@ -149,6 +149,21 @@ class IRSystem:
     # word-document pair, but rather just for those pairs where a
     # word actually occurs in the document.
   def compute_tfidf(self):
+    ####### BEGIN HELPER METHODS ##############################################
+    ##
+    # Calculate per-document L**2 norms for use in cosine similarity.
+    ##
+      # self.tfidf_l2norm[d] = sqrt(sum[tdidf**2])) for tdidf of all words in 
+      # document number d. Further information about vector norms can be found
+      # at:  http://mathworld.wolfram.com/VectorNorm.html
+    def get_tfidf_l2_norm(tfidf):
+      tfidf_l2norm = {}
+      for word, d_dict in tfidf.items():
+        for d, val in d_dict.items():
+          tfidf_l2norm[d] = tfidf_l2norm.get(d, 0.0) + val ** 2
+      return dict((k,math.sqrt(v)) for k,v in tfidf_l2norm.items())   
+    ####### END HELPER METHODS ################################################
+
     print "Calculating tf-idf..."
 
     # Initialize an empty dict for tfidf scores
@@ -157,6 +172,9 @@ class IRSystem:
     # Get the log_10 of the number of docs
     logN = math.log(len(self.docs), 10)
 
+    ##
+    # For each word in vocab, create a dict with key-value pairs corresponding
+    # to: key-- doc index, value-- tfidf score for that doc and this word.
     for word in self.vocab:
       ##
       # Retreive index of docs containing the word and the indices of 
@@ -176,7 +194,8 @@ class IRSystem:
         # If the 'tfidf' of 'word' has not yet been computed and placed
         # in the 'self.tfidf' dict, initialize an empty dict and associate
         # it with 'self.tfidf[word]'.
-        if word not in self.tfidf:    self.tfidf[word] = {}
+        if word not in self.tfidf:    
+          self.tfidf[word] = {}
 
         # Calculate the log term frequency.
         tf = 1.0 + math.log(len(occurrences), 10)
@@ -186,15 +205,7 @@ class IRSystem:
         # is the product of the 'tf' and 'idf' scores.
         self.tfidf[word][doc_i] = tf * idf 
 
-    # Calculate per-document l2 norms for use in cosine similarity
-    # self.tfidf_l2norm[d] = sqrt(sum[tdidf**2])) for tdidf of all words in 
-    # document number d
-    tfidf_l2norm2 = {}
-    for word, d_dict in self.tfidf.items():
-        for d,val in d_dict.items():
-            tfidf_l2norm2[d] = tfidf_l2norm2.get(d, 0.0) + val ** 2
-    self.tfidf_l2norm = dict((k,math.sqrt(v)) for k,v in tfidf_l2norm2.items())   
-    # ------------------------------------------------------------------
+    self.tfidf_l2norm = get_tfidf_l2_norm(self.tfidf)
 
   ##
   # Returns the tf-idf weigthing for the given word (string) & document index.
