@@ -175,58 +175,53 @@ class IRSystem:
     word = self.p.stem(word)
     return self.get_tfidf(word, document)
 
+  ######
+  # Build an inverted, positional index to allow easy access to: 
+  #   1) the documents in which a particular word is contained, and 
+  #   2) for every document, the positions of that word in the document 
+  ##
+  # Inverted index structure:
+  #     inv_index = {
+  #       word1: {
+  #         doc1: [positn1, positn2, ..., positnN]
+  #         doc2: [positn1, positn2, ..., positnN]
+  #       },
+  #       word2: {
+  #         doc1: [positn1, positn2, ..., positnN]
+  #         doc2: [positn1, positn2, ..., positnN]
+  #       }
+  #     }
+  ##
+  # Some helpful instance variables:
+  #   * self.docs = List of documents
+  #   * self.titles = List of titles
   def index(self):
-    """
-    Build an index of the documents.
-    """
     print "Indexing..."
-    # ------------------------------------------------------------------
-    # TODO: Create an inverted, positional index.
-    #     Granted this may not be a linked list as in a proper
-    #     implementation.
-    #     This index should allow easy access to both 
-    #     1) the documents in which a particular word is contained, and 
-    #     2) for every document, the positions of that word in the document 
-    #     Some helpful instance variables:
-    #     * self.docs = List of documents
-    #     * self.titles = List of titles
 
     inv_index = {}
 
-
-    # Create baseline entry for each word in the vocabulary.
-    #   - 'doc_freq' will be incremented each time 'word' is seen
-    #     in a new doc
-    #   - For each doc 'word' is found in, we add a new dict entry
-    #     corresponding to the doc's index number
-    for word in self.vocab:
-      inv_index[word] = { 'doc_freq': 0 }
-
-
-    # Get doc's index number
+    # Iterate through each document
     for i in range(0, len(self.docs)):
-      # Get doc at index i
       doc = self.docs[i]
+      for j, word in enumerate(doc):
+        ##
+        # If the word has not yet been added to 'inv_index', create
+        # an empty entry for it, which will later be filled.
+        if not word in inv_index:       inv_index[word] = {}
 
-      for word in doc:
-        # Increment the doc_freq count for this word
-        inv_index[word]['doc_freq'] += 1
+        ##
+        # If the current document's index has not yet been recorded
+        # in the word's dictionary, create an empty array associated
+        # with that doc's id. This array will subsequently be filled
+        # with the corresponding indices of the words.
+        if not i in inv_index[word]:    inv_index[word][i] = []
 
-      # # If 'word' is not in 'doc', skip
-      # if word in doc:
-      #   doc_freq += 1
-
-      #   # Find all occurrences of 'word' in 'doc' (a list)
-      #   indices = [i for i, x in enumerate(doc) if x == word]
-      #   inv_index[word][i] = indices
-
-
-    pp = pprint.PrettyPrinter(depth=6)
-    pp.pprint(inv_index)
+        ##
+        # Append index 'j' of this occurrence of 'word' to to the
+        # array corresponding to to the doc index 'i' and this 'word'
+        inv_index[word][i].append(j)
 
     self.inv_index = inv_index
-
-    # ------------------------------------------------------------------
 
 
   def get_posting(self, word):
