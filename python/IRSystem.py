@@ -5,6 +5,8 @@ import os
 import re
 import sys
 import pprint
+import heapq
+from operator import itemgetter
 
 from PorterStemmer import PorterStemmer
 
@@ -356,40 +358,62 @@ class IRSystem:
 
 
   ######
-  # Given a query (a list of words), return a rank-ordered list of
-  # documents (by ID) and score for the query.
+  # Given a query (a list of words), returns a rank-ordered list of 10
+  # documents (by ID) and score for the query. The score for a given doc
+  # is the cosine similarity between that doc and the query.
   def rank_retrieve(self, query):
-    scores = [0.0 for xx in range(len(self.docs))]
-    # ------------------------------------------------------------------
-    # TODO: Implement cosine similarity between a document and a list of
-    #     query words.
 
-    # Right now, this code simply gets the score by taking the Jaccard
-    # similarity between the query and every document.
-    words_in_query = set()
-    for word in query:
-      words_in_query.add(word)
+    ####### BEGIN HELPER METHODS ##############################################
+    ##
+      # Iterate through each word in the query, and build up a dict containing
+      # a log frequency for each distinct token.
+      #   - For queries w/ no repeated words, the vector will be filled with 1.0s
+      #   - First we count up the raw counts, then we replace them with the log.
+    def get_log_query_counts(q):
+      query_counts = {}
+      # If key is not yet defined, .get() retrieves 0.0.
+      for word in query:   query_counts[word] = query_counts.get(word, 0.0) + 1
+      # Take the log of each count and place into the dict
+      return dict((word, math.log(query_counts[word], 10) + 1.0) for word in query_counts)
 
-    for d, doc in enumerate(self.docs):
-      words_in_doc = set(doc)
-      scores[d] = len(words_in_query.intersection(words_in_doc)) \
-          / float(len(words_in_query.union(words_in_doc)))
+    ##
+      # Return score for document 'd' given the specified query. The score
+      # is defined as 'cos(query_counts * tfidf_vecs/norm)'' where:
+      #   - tfidf_vecs[word] = tfidf of 'word' in doc number d 
+      #   - norm = sqrt(tfidf_vecs[w]**2) for all words w in doc number d
+    def get_score(d):
+      ##
+      # Create a **dictionary** in which the keys are the words from the query
+      # and their corresponding values are vectors containing the tfidf of
+      # that word in doc number d.
+      tfidf_vecs = {}
+      for word in query_counts:
+        # Retrieve the array of word's tfidf values for the given doc; if key
+        # is not available, it retrieves 0.0. Place this value into tfidf_vecs.
+        tfidf_vecs[word] = self.tfidf[word].get(d, 0.0)
 
-    # ------------------------------------------------------------------
+      tfidf_sum = sum(query_counts[word] * tfidf_vecs[word] for word in tfidf_vecs)
+      return tfidf_sum / self.tfidf_l2norm[d]
+    ######## END HELPER METHOD ################################################
 
-    ranking = [idx for idx, sim in sorted(enumerate(scores),
-      key = lambda xx : xx[1], reverse = True)]
-    results = []
-    for i in range(10):
-      results.append((ranking[i], scores[ranking[i]]))
-    return results
+    query_counts = get_log_query_counts(query)
+    # Compute scores and add to a priority queue
+    scores = []
+    for doc_i in range(len(self.docs)):
+      scores.append( (doc_i, get_score(doc_i)) )
+      # heapq.heappush(scores, (get_score(d), d))
+
+    # Return the top 10 scores.
+    #  1. Sort the doc_i-score tuples by score
+    #  2. Reverse the list so that it's greatest to least
+    #  3. Return only scores 0-9 to get top 10 results.
+    return sorted(scores, key=itemgetter(1), reverse=True)[0:9]
 
 
+  ##
+  # Given a query string, process it and return the list of lowercase,
+  # alphanumeric, stemmed words in the string.
   def process_query(self, query_str):
-    """
-    Given a query string, process it and return the list of lowercase,
-    alphanumeric, stemmed words in the string.
-    """
     # make sure everything is lower case
     query = query_str.lower()
     # split on whitespace
@@ -400,12 +424,10 @@ class IRSystem:
     query = [self.p.stem(xx) for xx in query]
     return query
 
-
+  ##
+  # Given a string, process and then return the list of matching documents
+  # found by boolean_retrieve().
   def query_retrieve(self, query_str):
-    """
-    Given a string, process and then return the list of matching documents
-    found by boolean_retrieve().
-    """
     query = self.process_query(query_str)
     return self.boolean_retrieve(query)
 
@@ -417,12 +439,10 @@ class IRSystem:
     query = self.process_query(query_str)
     return self.phrase_retrieve(query)
 
-
+  ##
+  # Given a string, process and then return the list of the top matching
+  # documents, rank-ordered.
   def query_rank(self, query_str):
-    """
-    Given a string, process and then return the list of the top matching
-    documents, rank-ordered.
-    """
     query = self.process_query(query_str)
     return self.rank_retrieve(query)
 
