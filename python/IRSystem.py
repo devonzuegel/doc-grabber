@@ -401,7 +401,6 @@ class IRSystem:
     scores = []
     for doc_i in range(len(self.docs)):
       scores.append( (doc_i, get_score(doc_i)) )
-      # heapq.heappush(scores, (get_score(d), d))
 
     # Return the top 10 scores.
     #  1. Sort the doc_i-score tuples by score
